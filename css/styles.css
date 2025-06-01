@@ -1,0 +1,15 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #1b1b1b; /* Темный фон */
+}
+
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background-color: #222; /* Фон для канваса */
+}

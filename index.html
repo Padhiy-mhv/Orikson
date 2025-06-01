@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orikson — Тёмные Хроники</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas { 
+            display: block; 
+            width: 100vw;
+            height: 100vh;
+        }
+        .last-chance-btn {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #ff0000, #8b0000);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 200;
+            display: none;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+            transition: all 0.3s ease;
+        }
+        .last-chance-btn:hover {
+            background: linear-gradient(45deg, #ff3030, #a50000);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.9);
+        }
+        .glow-effect {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(180, 120, 255, 0.3) 0%, transparent 70%);
+            filter: blur(30px);
+            z-index: 5;
+            display: none;
+        }
+        .explosion-effect {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.8) 0%, transparent 70%);
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        .location-title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #8a2be2;
+            font-size: 72px;
+            text-align: center;
+            text-shadow: 0 0 20px #9370db, 0 0 40px #8a2be2;
+            opacity: 1;
+            transition: opacity 2s ease-in-out;
+            z-index: 100;
+            font-weight: bold;
+            letter-spacing: 5px;
+        }
+        .location-subtitle {
+            position: fixed;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #d8bfd8;
+            font-size: 24px;
+            text-align: center;
+            text-shadow: 0 0 10px #9370db;
+            opacity: 1;
+            transition: opacity 2s ease-in-out;
+            z-index: 100;
+            font-style: italic;
+        }
+        .dialog-box {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            max-width: 700px;
+            background: rgba(20, 10, 40, 0.9);
+            border: 2px solid #6a2be2;
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: white;
+            font-size: 16px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+            min-height: 80px;
+        }
+        .dialog-text {
+            margin-bottom: 10px;
+            line-height: 1.4;
+            min-height: 40px;
+        }
+        .dialog-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 18px;
+            text-shadow: 0 0 5px rgba(179, 136, 255, 0.7);
+        }
+        .dialog-name.player {
+            color: #ffffff;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+        }
+        .dialog-name.knight {
+            color: #b388ff;
+            text-shadow: 0 0 5px rgba(179, 136, 255, 0.7);
+        }
+        .next-btn {
+            float: right;
+            background: linear-gradient(45deg, #6a2be2, #4a50db);
+            border: none;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-top: 5px;
+        }
+        .next-btn:hover {
+            background: linear-gradient(45deg, #7a3bf2, #5a60eb);
+            transform: scale(1.05);
+        }
+        .next-btn:active {
+            transform: scale(0.95);
+        }
+        .typing-effect {
+            border-right: 2px solid white;
+            animation: blink 0.7s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { border-color: transparent; }
+            50% { border-color: white; }
+        }
+        /* Новая увеличенная полоска HP */
+        .health-bar-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 200px;
+            height: 30px;
+            background: rgba(30, 10, 50, 0.7);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 2px solid #4a148c;
+        }
+        .health-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #8a2be2, #9932cc, #9370db);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+        }
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="lastChanceBtn" class="last-chance-btn">Последний шанс</button>
+    <div id="playerGlow" class="glow-effect"></div>
+    <div id="explosion" class="explosion-effect"></div>
+    <div id="locationTitle" class="location-title">ПУРПУРНЫЙ ЛЕС</div>
+    <div id="locationSubtitle" class="location-subtitle"></div>
+    <div id="dialogBox" class="dialog-box">
+        <div id="dialogName" class="dialog-name"></div>
+        <div id="dialogText" class="dialog-text"></div>
+        <button id="nextBtn" class="next-btn">Далее</button>
+    </div>
+    <!-- Новая полоска HP -->
+    <div id="healthBarContainer" class="health-bar-container">
+        <div id="healthBar" class="health-bar"></div>
+        <div id="healthText" class="health-text"></div>
+    </div>
+
+    <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
+    <script>
+        // ===== СИСТЕМА СОХРАНЕНИЯ HP ===== //
+        // Проверяем и инициализируем HP при загрузке
+        function initializeHealthSystem() {
+            // Получаем текущее значение HP из localStorage
+            let currentHP = localStorage.getItem('currentHP');
+            
+            // Если HP нет или оно некорректно, устанавливаем стартовое значение 7
+            if (currentHP === null || currentHP === undefined || isNaN(parseInt(currentHP))) {
+                localStorage.setItem('currentHP', '7');
+                localStorage.setItem('lastChanceUsed', 'false');
+            } else {
+                // Если HP меньше или равно 0, сбрасываем
+                if (parseInt(currentHP) <= 0) {
+                    localStorage.setItem('currentHP', '7');
+                    localStorage.setItem('lastChanceUsed', 'false');
+                }
+            }
+        }
+
+        // Вызываем инициализацию при загрузке скрипта
+        initializeHealthSystem();
+
+        // Функция для обновления HP
+        function updateHP(change) {
+            let currentHP = parseInt(localStorage.getItem('currentHP'));
+            currentHP += change;
+            
+            // Ограничиваем HP в пределах от 0 до максимального значения
+            if (currentHP < 0) currentHP = 0;
+            if (currentHP > 15) currentHP = 15;
+            
+            // Сохраняем новое значение
+            localStorage.setItem('currentHP', currentHP.toString());
+            
+            // Обновляем отображение
+            updateHealthDisplay();
+            
+            return currentHP;
+        }
+
+        // Функция для получения текущего HP
+        function getCurrentHP() {
+            return parseInt(localStorage.getItem('currentHP'));
+        }
+
+        // Функция для полного сброса HP
+        function resetHP() {
+            localStorage.setItem('currentHP', '7');
+            localStorage.setItem('lastChanceUsed', 'false');
+            updateHealthDisplay();
+        }
+
+        // Функция для обновления отображения здоровья
+        function updateHealthDisplay() {
+            const healthBar = document.getElementById('healthBar');
+            const healthText = document.getElementById('healthText');
+            const currentHP = player.health; // Используем текущее HP игрока, а не из localStorage
+            const maxHP = player.maxHealth;
+            
+            // Рассчитываем процент здоровья
+            const percent = (currentHP / maxHP) * 100;
+            healthBar.style.width = `${percent}%`;
+            
+            // Обновляем текст в зависимости от формы игрока
+            healthText.textContent = player.transformed ? 
+                `HP: ${currentHP}/${maxHP} (Рыцарь)` : 
+                `HP: ${currentHP}/${maxHP}`;
+        }
+
+        // ===== ОСНОВНЫЕ НАСТРОЙКИ ===== //
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const lastChanceBtn = document.getElementById('lastChanceBtn');
+        const playerGlow = document.getElementById('playerGlow');
+        const explosion = document.getElementById('explosion');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationSubtitle = document.getElementById('locationSubtitle');
+        const dialogBox = document.getElementById('dialogBox');
+        const dialogName = document.getElementById('dialogName');
+        const dialogText = document.getElementById('dialogText');
+        const nextBtn = document.getElementById('nextBtn');
+        
+        // Фоновое изображение
+        const backgroundImage = new Image();
+        backgroundImage.src = 'assets/images/purple_tree.png';
+        
+        // Текстура земли
+        const groundTexture = new Image();
+        groundTexture.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDUwIDUwIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMyMDEwNDAiLz48cGF0aCBkPSJNMjAsMjAgQzMwLDEwIDQwLDMwIDMwLDQwIiBzdHJva2U9IiMzMDIwNjAiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCwxMCBDMjAsMCAzMCwyMCAyMCwzMCIgc3Ryb2tlPSIjMzAyMDYwIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiLz48L3N2Zz4=';
+        
+        // Текстура платформ
+        const platformTexture = new Image();
+        platformTexture.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDUwIDIwIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iMjAiIGZpbGw9IiMzMDEwNTAiLz48cGF0aCBkPSJNMCwxMCBDMTUsNSAzMCwxNSA1MCwxMCIgc3Ryb2tlPSIjNTAzMDgwIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48L3N2Zz4=';
+
+        // Текстуры деревьев (3 разных вида)
+        const treeTextures = [
+            { img: new Image(), width: 60, height: 120, src: 'assets/images/tree1.png' },
+            { img: new Image(), width: 70, height: 130, src: 'assets/images/tree2.png' },
+            { img: new Image(), width: 50, height: 110, src: 'assets/images/tree3.png' }
+        ];
+
+        // Загружаем изображения деревьев
+        treeTextures.forEach(tree => {
+            tree.img.src = tree.src;
+        });
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            groundLevel = canvas.height * 0.8;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        
+        let groundLevel;
+        resizeCanvas();
+        
+        // ===== ПЕРСОНАЖ ===== //
+        const player = {
+            x: 100,
+            y: groundLevel - 70,
+            width: 50,
+            height: 70,
+            knightWidth: 120,
+            knightHeight: 150,
+            knightOffsetY: 30,
+            velocityX: 0,
+            velocityY: 0,
+            facingRight: true,
+            isJumping: false,
+            isAttacking: false,
+            attackCooldown: 0,
+            health: getCurrentHP(), // Используем сохраненное HP
+            maxHealth: 15,
+            animation: null,
+            animator: null,
+            currentAnimation: 'idle',
+            invincible: false,
+            invincibleTimer: 0,
+            onGround: false,
+            isDead: false,
+            deathTimer: 0,
+            canTeleport: false,
+            deathAnimationPlayed: false,
+            transformed: false,
+            transformationTimer: 0,
+            attackRange: 70,
+            knightAttackRange: 150,
+            damage: 1,
+            knightDamage: 3,
+            jumpForce: 15,
+            knightJumpForce: 14,
+            speed: 5,
+            knightSpeed: 4,
+            currentPlatform: null
+        };
+
+        // ===== АНИМАЦИИ ИГРОКА ===== //
+        const playerAnimations = { 
+            idle: null, 
+            walk: null, 
+            jump: null,
+            attack: null,
+            hurt: null,
+            death: null,
+            knightIdle: null,
+            knightWalk: null,
+            knightAttack: null,
+            knightJump: null,
+            animators: {
+                idle: null,
+                walk: null,
+                jump: null,
+                attack: null,
+                hurt: null,
+                death: null,
+                knightIdle: null,
+                knightWalk: null,
+                knightAttack: null,
+                knightJump: null
+            }
+        };
+
+        // ===== ЗОМБИ ===== //
+        const zombies = [
+            { x: canvas.width * 0.3, y: groundLevel - 90, width: 60, height: 90, speed: 1, direction: 1, health: 2, 
+              minX: canvas.width * 0.2, maxX: canvas.width * 0.4, animation: null, attackAnimation: null, hurtAnimation: null, deathAnimation: null,
+              animator: null, isAttacking: false, isHurt: false, isDead: false, attackCooldown: 0,
+              damage: 1, attackRange: 50, attackYRange: 30, type: 'normal', hurtTimer: 0, deathTimer: 0 },
+              
+            { x: canvas.width * 0.6, y: groundLevel - 70, width: 60, height: 70, speed: 1.5, direction: -1, health: 2, 
+              minX: canvas.width * 0.5, maxX: canvas.width * 0.7, animation: null, attackAnimation: null, hurtAnimation: null, deathAnimation: null,
+              animator: null, isAttacking: false, isHurt: false, isDead: false, attackCooldown: 0,
+              damage: 1, attackRange: 50, attackYRange: 30, type: 'normal', hurtTimer: 0, deathTimer: 0 },
+              
+            { x: canvas.width * 0.8, y: groundLevel - 120, width: 90, height: 120, speed: 2, direction: -1, health: 3, 
+              minX: canvas.width * 0.7, maxX: canvas.width * 0.9, animation: null, attackAnimation: null, hurtAnimation: null, deathAnimation: null,
+              animator: null, isAttacking: false, isHurt: false, isDead: false, attackCooldown: 0,
+              damage: 2, attackRange: 55, attackYRange: 30, type: 'normal', hurtTimer: 0, deathTimer: 0 }
+        ];
+
+        // ===== БЕГУНЫ ===== //
+        const runners = [
+            { x: canvas.width * 0.2, y: groundLevel - 250, width: 45, height: 65, speed: 3, direction: -1, health: 2, 
+              minX: canvas.width * 0.1, maxX: canvas.width * 0.3, animation: null, attackAnimation: null, hurtAnimation: null, deathAnimation: null,
+              animator: null, isAttacking: false, isHurt: false, isDead: false, attackCooldown: 0,
+              damage: 1, attackRange: 40, attackYRange: 30, type: 'runner', hurtTimer: 0, deathTimer: 0,
+              velocityY: 0, onGround: true },
+              
+            { x: canvas.width * 0.8, y: groundLevel - 250, width: 45, height: 65, speed: 4, direction: -1, health: 3, 
+              minX: canvas.width * 0.7, maxX: canvas.width * 0.9, animation: null, attackAnimation: null, hurtAnimation: null, deathAnimation: null,
+              animator: null, isAttacking: false, isHurt: false, isDead: false, attackCooldown: 0,
+              damage: 1, attackRange: 40, attackYRange: 30, type: 'runner', hurtTimer: 0, deathTimer: 0,
+              velocityY: 0, onGround: true }
+        ];
+
+        // ===== АНИМАЦИИ ВРАГОВ ===== //
+        const zombieAnimations = {
+            walk: null,
+            attack: null,
+            hurt: null,
+            death: null,
+            animators: {
+                walk: null,
+                attack: null,
+                hurt: null,
+                death: null
+            }
+        };
+
+        const runnerAnimations = {
+            walk: null,
+            attack: null,
+            hurt: null,
+            death: null,
+            animators: {
+                walk: null,
+                attack: null,
+                hurt: null,
+                death: null
+            }
+        };
+
+        // ===== АНИМАЦИИ ФОНАРЕЙ ===== //
+        const lampAnimations = {
+            lamp: null,
+            smallLamp: null,
+            animator: null,
+            smallLampAnimator: null
+        };
+
+        // ===== АНИМАЦИЯ ПОРТАЛА ===== //
+        const portalAnimation = {
+            frames: [],
+            currentFrame: 0,
+            frameCount: 0,
+            loaded: false
+        };
+
+        // ===== ДИАЛОГИ ===== //
+        const afterBattleDialogs = [
+            { type: 'knight', text: 'Хм... Это же Пурпурный лес...' },
+            { type: 'knight', text: 'Интересно, почему в нём так много обожжённых деревьев и нечисти?' },
+            { type: 'knight', text: 'Ведь он был одним из самых прекрасных мест в королевстве...' },
+            { type: 'player', text: 'Что?! Ты знаешь это место?' },
+            { type: 'player', text: 'Что здесь произошло? Почему всё так изменилось?' },
+            { type: 'knight', text: 'Наверное, ответ скрыт дальше за этим лесом, в лесу ламп...' },
+            { type: 'knight', text: 'Скорее, иди вперед, через портал. Там тебя ждут новые испытания.' },
+            { type: 'player', text: 'Хорошо... Но нужно быть осторожнее, я чувствую, что впереди нас ждёт нечто ужасное.' },
+            { type: 'end-dialog' }
+        ];
+
+        let currentDialogs = [];
+        let currentDialog = 0;
+        let isTyping = false;
+        let currentText = '';
+        let currentIndex = 0;
+        let typingSpeed = 20;
+        let gameState = 'gameplay'; // 'gameplay', 'dialog', 'death'
+
+        function loadGIF(path, animationName, target) {
+            const bufferCanvas = document.createElement('canvas');
+            
+            if (target === 'lamp') {
+                bufferCanvas.width = 60;
+                bufferCanvas.height = 120;
+            } else if (target === 'smallLamp') {
+                bufferCanvas.width = 20;
+                bufferCanvas.height = 30;
+            } else if (target === 'zombie') {
+                bufferCanvas.width = 40;
+                bufferCanvas.height = 60;
+            } else if (target === 'runner') {
+                bufferCanvas.width = 45;
+                bufferCanvas.height = 50;
+            } else if (target === 'portal') {
+                bufferCanvas.width = 100;
+                bufferCanvas.height = 150;
+            } else {
+                bufferCanvas.width = 50;
+                bufferCanvas.height = 70;
+            }
+
+            gifler(path).get((anim) => {
+                anim.animateInCanvas(bufferCanvas);
+                
+                if (target === 'player') {
+                    playerAnimations[animationName] = bufferCanvas;
+                    playerAnimations.animators[animationName] = anim;
+                    
+                    if (animationName === 'idle' && !player.animation) {
+                        player.animation = playerAnimations.idle;
+                        player.animator = playerAnimations.animators.idle;
+                        player.currentAnimation = 'idle';
+                    }
+                } else if (target === 'zombie') {
+                    zombieAnimations[animationName] = bufferCanvas;
+                    zombieAnimations.animators[animationName] = anim;
+                    
+                    zombies.forEach(zombie => {
+                        if (animationName === 'walk') {
+                            zombie.animation = zombieAnimations.walk;
+                            zombie.animator = zombieAnimations.animators.walk;
+                        }
+                    });
+                } else if (target === 'runner') {
+                    runnerAnimations[animationName] = bufferCanvas;
+                    runnerAnimations.animators[animationName] = anim;
+                    
+                    runners.forEach(runner => {
+                        if (animationName === 'walk') {
+                            runner.animation = runnerAnimations.walk;
+                            runner.animator = runnerAnimations.animators.walk;
+                        }
+                    });
+                } else if (target === 'lamp') {
+                    lampAnimations[animationName] = bufferCanvas;
+                    lampAnimations.animator = anim;
+                } else if (target === 'smallLamp') {
+                    lampAnimations.smallLamp = bufferCanvas;
+                    lampAnimations.smallLampAnimator = anim;
+                } else if (target === 'portal') {
+                    portalAnimation.frames.push(bufferCanvas);
+                    portalAnimation.frameCount++;
+                    portalAnimation.loaded = true;
+                }
+            });
+        }
+
+        // Загружаем анимации
+        loadGIF('assets/images/player_idle.gif', 'idle', 'player');
+        loadGIF('assets/images/player_walk.gif', 'walk', 'player');
+        loadGIF('assets/images/player_jump.gif', 'jump', 'player');
+        loadGIF('assets/images/player_attack.gif', 'attack', 'player');
+        loadGIF('assets/images/player_hurt.gif', 'hurt', 'player');
+        loadGIF('assets/images/player_death.gif', 'death', 'player');
+        loadGIF('assets/images/knight_idle.gif', 'knightIdle', 'player');
+        loadGIF('assets/images/knight_walk.gif', 'knightWalk', 'player');
+        loadGIF('assets/images/knight_attack.gif', 'knightAttack', 'player');
+        loadGIF('assets/images/knight_jump.gif', 'knightJump', 'player');
+
+        loadGIF('assets/images/zombie_walk.gif', 'walk', 'zombie');
+        loadGIF('assets/images/zombie_attack.gif', 'attack', 'zombie');
+        loadGIF('assets/images/zombie_hurt.gif', 'hurt', 'zombie');
+        loadGIF('assets/images/zombie_death.gif', 'death', 'zombie');
+        
+        loadGIF('assets/images/runner_walk.gif', 'walk', 'runner');
+        loadGIF('assets/images/runner_attack.gif', 'attack', 'runner');
+        loadGIF('assets/images/runner_hurt.gif', 'hurt', 'runner');
+        loadGIF('assets/images/runner_death.gif', 'death', 'runner');
+        
+        loadGIF('assets/images/lamp.gif', 'lamp', 'lamp');
+        loadGIF('assets/images/small_lamp.gif', 'smallLamp', 'smallLamp');
+        loadGIF('assets/images/portal.gif', 'portal', 'portal');
+
+        // ===== ПЛАТФОРМЫ ===== //
+        const platforms = [
+            { x: 0, y: groundLevel, width: canvas.width, height: canvas.height - groundLevel, type: 'ground' },
+            { x: canvas.width * 0.1, y: groundLevel - 200, width: canvas.width * 0.2, height: 20, type: 'platform' },
+            { x: canvas.width * 0.7, y: groundLevel - 200, width: canvas.width * 0.2, height: 20, type: 'platform' },
+            { x: canvas.width * 0.3, y: groundLevel - 100, width: canvas.width * 0.1, height: 20, type: 'platform' },
+            { x: canvas.width * 0.5, y: groundLevel - 150, width: canvas.width * 0.1, height: 20, type: 'platform' },
+            { x: canvas.width * 0.6, y: groundLevel - 100, width: canvas.width * 0.1, height: 20, type: 'platform' },
+            { x: 0, y: 0, width: 20, height: groundLevel, type: 'wall' },
+            { x: canvas.width - 20, y: 0, width: 20, height: groundLevel, type: 'wall' }
+        ];
+
+        // Маленькие фонари на платформах (уменьшенные и опущенные)
+        const smallLamps = [
+            { x: canvas.width * 0.155, y: groundLevel - 200, width: 20, height: 30 },
+            { x: canvas.width * 0.74, y: groundLevel - 200, width: 20, height: 30 },
+            { x: canvas.width * 0.355, y: groundLevel - 100, width: 20, height: 30 },
+            { x: canvas.width * 0.555, y: groundLevel - 150, width: 20, height: 30 },
+            { x: canvas.width * 0.658, y: groundLevel - 100, width: 20, height: 30 }
+        ];
+
+        // Деревья на уровне (на земле и на платформах)
+        const trees = [
+            // Деревья на земле
+            { x: canvas.width * 0.1, y: groundLevel- -20, type: 0, scale: 1.9 },
+            { x: canvas.width * 0.45, y: groundLevel- -20, type: 1, scale: 1.4 },
+            { x: canvas.width * 0.24, y: groundLevel- -20, type: 1, scale: 1.0 },
+            { x: canvas.width * 0.7, y: groundLevel- -20, type: 2, scale: 0.8 },
+            { x: canvas.width * 0.9, y: groundLevel- -20, type: 0, scale: 1.1 },
+            
+            // Деревья на платформах
+            { x: canvas.width * 0.15, y: groundLevel - 180, type: 1, scale: 1.7 },
+            { x: canvas.width * 0.35, y: groundLevel - 60, type: 2, scale: 1.6 },
+            { x: canvas.width * 0.55, y: groundLevel - 130, type: 0, scale: 0.9 },
+            { x: canvas.width * 0.75, y: groundLevel - 160, type: 1, scale: 2.7 },
+            { x: canvas.width * 0.65, y: groundLevel - 80, type: 2, scale: 0.8 }
+        ];
+
+        // Телепорт
+        const teleport = {
+            x: canvas.width - 120,
+            y: groundLevel - 150,
+            width: 100,
+            height: 150,
+            active: false,
+            animation: null,
+            animator: null,
+            particles: []
+        };
+
+        // Генерация частиц для телепорта
+        function generatePortalParticles() {
+            for (let i = 0; i < 30; i++) {
+                teleport.particles.push({
+                    x: teleport.x + Math.random() * teleport.width,
+                    y: teleport.y + Math.random() * teleport.height,
+                    radius: Math.random() * 10 + 5,
+                    speedX: (Math.random() - 0.5) * 2,
+                    speedY: (Math.random() - 0.5) * 2,
+                    color: `hsl(${Math.random() * 60 + 270}, 100%, 50%)`,
+                    alpha: Math.random() * 0.5 + 0.3,
+                    life: Math.random() * 100 + 50
+                });
+            }
+        }
+
+        // Обновление частиц телепорта
+        function updatePortalParticles() {
+            if (!teleport.active) return;
+            
+            teleport.particles.forEach((p, i) => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life--;
+                
+                if (p.life <= 0 || 
+                    p.x < teleport.x || p.x > teleport.x + teleport.width ||
+                    p.y < teleport.y || p.y > teleport.y + teleport.height) {
+                    
+                    // Заменяем умершую частицу новой
+                    teleport.particles[i] = {
+                        x: teleport.x + Math.random() * teleport.width,
+                        y: teleport.y + Math.random() * teleport.height,
+                        radius: Math.random() * 10 + 5,
+                        speedX: (Math.random() - 0.5) * 2,
+                        speedY: (Math.random() - 0.5) * 2,
+                        color: `hsl(${Math.random() * 60 + 270}, 100%, 50%)`,
+                        alpha: Math.random() * 0.5 + 0.3,
+                        life: Math.random() * 100 + 50
+                    };
+                }
+            });
+        }
+
+        // ===== ТУМАН ===== //
+        const fogParticles = [];
+        for (let i = 0; i < 80; i++) {
+            fogParticles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * groundLevel,
+                radius: Math.random() * 20 + 10,
+                speed: Math.random() * 0.5 + 0.2,
+                alpha: Math.random() * 0.1 + 0.05
+            });
+        }
+
+        function drawFog() {
+            fogParticles.forEach(particle => {
+                ctx.fillStyle = `rgba(150, 100, 200, ${particle.alpha})`;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function updateFog() {
+            fogParticles.forEach(particle => {
+                particle.x += particle.speed;
+                if (particle.x > canvas.width + particle.radius) {
+                    particle.x = -particle.radius;
+                    particle.y = Math.random() * groundLevel;
+                }
+            });
+        }
+
+        // ===== ОТРИСОВКА ПЛАТФОРМ ===== //
+        function drawPlatforms() {
+            platforms.forEach(platform => {
+                if (platform.type === 'ground' && groundTexture.complete) {
+                    const pattern = ctx.createPattern(groundTexture, 'repeat');
+                    ctx.fillStyle = pattern;
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                } 
+                else if (platform.type === 'platform' && platformTexture.complete) {
+                    const pattern = ctx.createPattern(platformTexture, 'repeat');
+                    ctx.fillStyle = pattern;
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    
+                    // Тень под платформой
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.fillRect(platform.x, platform.y + platform.height, platform.width, 5);
+                }
+                else if (platform.type === 'wall') {
+                    ctx.fillStyle = '#1a1020';
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                }
+            });
+        }
+
+        // ===== ОТРИСОВКА ДЕРЕВЬЕВ ===== //
+        function drawTrees() {
+            trees.forEach(tree => {
+                const texture = treeTextures[tree.type];
+                if (texture.img.complete) {
+                    const width = texture.width * tree.scale;
+                    const height = texture.height * tree.scale;
+                    
+                    ctx.save();
+                    ctx.drawImage(
+                        texture.img,
+                        tree.x - width/2,
+                        tree.y - height,
+                        width,
+                        height
+                    );
+                    ctx.restore();
+                    
+                    // Тень под деревом
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.beginPath();
+                    ctx.ellipse(
+                        tree.x,
+                        tree.y,
+                        width * 0.3,
+                        width * 0.1,
+                        0,
+                        0,
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            });
+        }
+
+        // ===== ОТРИСОВКА МАЛЕНЬКИХ ФОНАРЕЙ ===== //
+        function drawSmallLamps() {
+            smallLamps.forEach(lamp => {
+                if (lampAnimations.smallLamp) {
+                    // Рисуем анимацию фонаря
+                    ctx.drawImage(
+                        lampAnimations.smallLamp,
+                        lamp.x,
+                        lamp.y - lamp.height,
+                        lamp.width,
+                        lamp.height
+                    );
+                    
+                    // Рисуем свет от фонаря (уменьшенный)
+                    const lightX = lamp.x + lamp.width / 2;
+                    const lightY = lamp.y - lamp.height + lamp.height * 0.7;
+                    
+                    const gradient = ctx.createRadialGradient(
+                        lightX, lightY, 3,
+                        lightX, lightY, 40
+                    );
+                    gradient.addColorStop(0, 'rgba(150, 100, 255, 0.3)');
+                    gradient.addColorStop(1, 'rgba(150, 100, 255, 0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(lightX, lightY, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Мерцание
+                    const flicker = Math.random() * 0.2 + 0.8;
+                    ctx.globalAlpha = 0.15 * flicker;
+                    ctx.fillStyle = 'rgba(180, 120, 255, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(lightX, lightY, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+            });
+        }
+
+        // ===== СЧЕТЧИК МОНСТРОВ ===== //
+        function drawEnemyCounter() {
+            const totalEnemies = [...zombies, ...runners].filter(e => !e.isDead).length;
+            
+            ctx.fillStyle = 'rgba(30, 10, 50, 0.7)';
+            ctx.fillRect(canvas.width - 150, 20, 130, 40);
+            
+            ctx.fillStyle = '#c0a0ff';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText(`Монстров: ${totalEnemies}`, canvas.width - 30, 45);
+            ctx.textAlign = 'left';
+            
+            if (totalEnemies === 0 && !teleport.active) {
+                teleport.active = true;
+                currentDialogs = afterBattleDialogs;
+                currentDialog = 0;
+                gameState = 'dialog';
+                showNextDialog();
+            }
+        }
+
+        // ===== ТЕЛЕПОРТ ===== //
+        function drawTeleport() {
+            if (!teleport.active) return;
+            
+            // Рисуем анимацию портала
+            if (portalAnimation.loaded && portalAnimation.frames.length > 0) {
+                portalAnimation.currentFrame = (portalAnimation.currentFrame + 0.2) % portalAnimation.frames.length;
+                const frame = portalAnimation.frames[Math.floor(portalAnimation.currentFrame)];
+                
+                ctx.save();
+                ctx.globalAlpha = 0.9;
+                ctx.drawImage(frame, teleport.x, teleport.y, teleport.width, teleport.height);
+                ctx.globalAlpha = 1.0;
+                ctx.restore();
+            } else {
+                // Запасной вариант, если анимация не загрузилась
+                ctx.fillStyle = 'rgba(120, 50, 220, 0.7)';
+                ctx.fillRect(teleport.x, teleport.y, teleport.width, teleport.height);
+            }
+            
+            // Рисуем частицы портала
+            teleport.particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            
+            // Рисуем свечение вокруг портала
+            const portalCenterX = teleport.x + teleport.width / 2;
+            const portalCenterY = teleport.y + teleport.height / 2;
+            
+            const glowGradient = ctx.createRadialGradient(
+                portalCenterX, portalCenterY, 50,
+                portalCenterX, portalCenterY, 150
+            );
+            glowGradient.addColorStop(0, 'rgba(120, 50, 220, 0.5)');
+            glowGradient.addColorStop(1, 'rgba(120, 50, 220, 0)');
+            
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(portalCenterX, portalCenterY, 150, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Проверка столкновения с игроком
+            if (player.x + player.width > teleport.x && 
+                player.x < teleport.x + teleport.width &&
+                player.y + player.height > teleport.y && 
+                player.y < teleport.y + teleport.height) {
+                
+                // Сохраняем текущее HP перед переходом
+                localStorage.setItem('currentHP', player.health.toString());
+                localStorage.setItem('lastChanceUsed', 'false'); // Сбрасываем флаг последнего шанса
+                
+                // Переход на вторую часть локации
+                window.location.href = "dark_forest_level.html";
+            }
+        }
+
+        // ===== ОБНОВЛЕНИЕ ВРАГОВ ===== //
+        function updateEnemies() {
+            zombies.forEach((zombie, index) => {
+                if (zombie.isDead) {
+                    zombie.deathTimer--;
+                    if (zombie.deathTimer <= 0) {
+                        zombies.splice(index, 1);
+                    }
+                    return;
+                } else if (zombie.health <= 0) {
+                    zombie.isDead = true;
+                    zombie.deathTimer = 60;
+                    zombie.animation = zombieAnimations.death;
+                    zombie.animator = zombieAnimations.animators.death;
+                    return;
+                }
+
+                if (zombie.isHurt) {
+                    zombie.hurtTimer--;
+                    if (zombie.hurtTimer <= 0) {
+                        zombie.isHurt = false;
+                        zombie.animation = zombieAnimations.walk;
+                        zombie.animator = zombieAnimations.animators.walk;
+                    }
+                }
+
+                if (zombie.attackCooldown > 0) {
+                    zombie.attackCooldown--;
+                }
+
+                if (!zombie.isAttacking && !zombie.isHurt && !zombie.isDead) {
+                    zombie.x += zombie.speed * zombie.direction;
+                    
+                    if (zombie.x <= zombie.minX || zombie.x + zombie.width >= zombie.maxX) {
+                        zombie.direction *= -1;
+                    }
+                }
+
+                checkEnemyAttack(zombie);
+            });
+
+            runners.forEach((runner, index) => {
+                if (runner.isDead) {
+                    runner.deathTimer--;
+                    if (runner.deathTimer <= 0) {
+                        runners.splice(index, 1);
+                    }
+                    return;
+                } else if (runner.health <= 0) {
+                    runner.isDead = true;
+                    runner.deathTimer = 60;
+                    runner.animation = runnerAnimations.death;
+                    runner.animator = runnerAnimations.animators.death;
+                    return;
+                }
+
+                if (runner.isHurt) {
+                    runner.hurtTimer--;
+                    if (runner.hurtTimer <= 0) {
+                        runner.isHurt = false;
+                        runner.animation = runnerAnimations.walk;
+                        runner.animator = runnerAnimations.animators.walk;
+                    }
+                }
+
+                if (runner.attackCooldown > 0) {
+                    runner.attackCooldown--;
+                }
+
+                if (!runner.isAttacking && !runner.isHurt && !runner.isDead) {
+                    runner.x += runner.speed * runner.direction;
+                    
+                    if (runner.x <= runner.minX || runner.x + runner.width >= runner.maxX) {
+                        runner.direction *= -1;
+                    }
+                    
+                    if (Math.random() < 0.01 && runner.onGround) {
+                        runner.velocityY = -12;
+                        runner.onGround = false;
+                    }
+                }
+
+                runner.velocityY += 0.7;
+                runner.y += runner.velocityY;
+                runner.onGround = false;
+
+                platforms.forEach(platform => {
+                    if (
+                        runner.y + runner.height >= platform.y &&
+                        runner.y + runner.height <= platform.y + 20 &&
+                        runner.x + runner.width > platform.x &&
+                        runner.x < platform.x + platform.width &&
+                        runner.velocityY >= 0
+                    ) {
+                        runner.y = platform.y - runner.height;
+                        runner.velocityY = 0;
+                        runner.onGround = true;
+                    }
+                });
+
+                if (!runner.isDead) {
+                    checkEnemyAttack(runner);
+                }
+            });
+        }
+
+        // ===== ДИАЛОГИ ===== //
+        function typeText() {
+            if (currentIndex < currentText.length) {
+                dialogText.innerHTML = currentText.substring(0, currentIndex + 1) + '<span class="typing-effect"></span>';
+                currentIndex++;
+                setTimeout(typeText, typingSpeed);
+            } else {
+                dialogText.innerHTML = currentText;
+                isTyping = false;
+                nextBtn.style.display = 'block';
+            }
+        }
+
+        function showNextDialog() {
+            if (currentDialog >= currentDialogs.length) {
+                endDialogSequence();
+                return;
+            }
+            
+            const dialog = currentDialogs[currentDialog];
+            
+            if (dialog.type === 'end-dialog') {
+                endDialogSequence();
+                return;
+            }
+            
+            dialogBox.style.display = 'block';
+            nextBtn.style.display = 'none';
+            
+            if (dialog.type === 'player') {
+                dialogName.textContent = 'Игрок';
+                dialogName.className = 'dialog-name player';
+                dialogText.style.color = '#ffffff';
+            } 
+            else if (dialog.type === 'knight') {
+                dialogName.textContent = 'Рыцарь';
+                dialogName.className = 'dialog-name knight';
+                dialogText.style.color = '#b388ff';
+            }
+            
+            currentText = dialog.text;
+            currentIndex = 0;
+            isTyping = true;
+            typeText();
+        }
+
+        function handleNextDialog() {
+            if (isTyping) {
+                currentIndex = currentText.length;
+                dialogText.innerHTML = currentText;
+                isTyping = false;
+                nextBtn.style.display = 'block';
+            } else {
+                currentDialog++;
+                showNextDialog();
+            }
+        }
+
+        nextBtn.addEventListener('click', handleNextDialog);
+
+        function endDialogSequence() {
+            dialogBox.style.display = 'none';
+            gameState = 'gameplay';
+        }
+
+        // ===== ИГРОВАЯ ЛОГИКА ===== //
+        function update() {
+            if (gameState === 'dialog') return;
+            if (player.isDead && !player.transformed) return;
+
+            if (player.attackCooldown > 0) {
+                player.attackCooldown--;
+            }
+
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) {
+                    player.invincible = false;
+                    if (!player.isJumping && !player.isAttacking) {
+                        player.currentAnimation = player.velocityX !== 0 ? 
+                            (player.transformed ? 'knightWalk' : 'walk') : 
+                            (player.transformed ? 'knightIdle' : 'idle');
+                        player.animation = player.velocityX !== 0 ? 
+                            (player.transformed ? playerAnimations.knightWalk : playerAnimations.walk) : 
+                            (player.transformed ? playerAnimations.knightIdle : playerAnimations.idle);
+                        player.animator = player.velocityX !== 0 ? 
+                            (player.transformed ? playerAnimations.animators.knightWalk : playerAnimations.animators.walk) : 
+                            (player.transformed ? playerAnimations.animators.knightIdle : playerAnimations.animators.idle);
+                    }
+                }
+            }
+
+            // Обновление таймера трансформации
+            if (player.transformed) {
+                player.transformationTimer--;
+                if (player.transformationTimer <= 0) {
+                    endTransformation();
+                }
+            }
+
+            player.velocityY += 0.7;
+            player.y += player.velocityY;
+            player.onGround = false;
+            player.currentPlatform = null;
+
+            platforms.forEach(platform => {
+                const playerBottom = player.transformed ? 
+                    (player.y + player.knightHeight - player.knightOffsetY) : 
+                    (player.y + player.height);
+                
+                const playerWidth = player.transformed ? player.knightWidth : player.width;
+                const playerHeight = player.transformed ? player.knightHeight : player.height;
+                
+                if (
+                    playerBottom >= platform.y &&
+                    playerBottom <= platform.y + 20 &&
+                    player.x + playerWidth > platform.x &&
+                    player.x < platform.x + platform.width &&
+                    player.velocityY >= 0
+                ) {
+                    player.y = platform.y - (player.transformed ? player.knightHeight - player.knightOffsetY : player.height);
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                    player.onGround = true;
+                    player.currentPlatform = platform;
+                    
+                    if (!player.isAttacking && !player.invincible && !player.isDead) {
+                        player.currentAnimation = player.velocityX !== 0 ? 
+                            (player.transformed ? 'knightWalk' : 'walk') : 
+                            (player.transformed ? 'knightIdle' : 'idle');
+                        player.animation = player.velocityX !== 0 ? 
+                            (player.transformed ? playerAnimations.knightWalk : playerAnimations.walk) : 
+                            (player.transformed ? playerAnimations.knightIdle : playerAnimations.idle);
+                        player.animator = player.velocityX !== 0 ? 
+                            (player.transformed ? playerAnimations.animators.knightWalk : playerAnimations.animators.walk) : 
+                            (player.transformed ? playerAnimations.animators.knightIdle : playerAnimations.animators.idle);
+                    }
+                }
+            });
+
+            if (!player.isAttacking && !player.invincible && !player.isDead) {
+                const speed = player.transformed ? player.knightSpeed : player.speed;
+                
+                if (keys['a'] || keys['arrowleft']) {
+                    player.velocityX = -speed;
+                    player.facingRight = false;
+                    if (player.onGround) {
+                        player.currentAnimation = player.transformed ? 'knightWalk' : 'walk';
+                        player.animation = player.transformed ? playerAnimations.knightWalk : playerAnimations.walk;
+                        player.animator = player.transformed ? playerAnimations.animators.knightWalk : playerAnimations.animators.walk;
+                    }
+                } else if (keys['d'] || keys['arrowright']) {
+                    player.velocityX = speed;
+                    player.facingRight = true;
+                    if (player.onGround) {
+                        player.currentAnimation = player.transformed ? 'knightWalk' : 'walk';
+                        player.animation = player.transformed ? playerAnimations.knightWalk : playerAnimations.walk;
+                        player.animator = player.transformed ? playerAnimations.animators.knightWalk : playerAnimations.animators.walk;
+                    }
+                } else {
+                    player.velocityX = 0;
+                    if (player.onGround && !player.isJumping) {
+                        player.currentAnimation = player.transformed ? 'knightIdle' : 'idle';
+                        player.animation = player.transformed ? playerAnimations.knightIdle : playerAnimations.idle;
+                        player.animator = player.transformed ? playerAnimations.animators.knightIdle : playerAnimations.animators.idle;
+                    }
+                }
+            } else {
+                player.velocityX *= 0.9;
+            }
+
+            player.x += player.velocityX;
+
+            const playerWidth = player.transformed ? player.knightWidth : player.width;
+            if (player.x < 20) player.x = 20;
+            if (player.x + playerWidth > canvas.width - 20) {
+                player.x = canvas.width - 20 - playerWidth;
+            }
+
+            updateEnemies();
+            updateFog();
+            updatePortalParticles();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем фоновое изображение
+            if (backgroundImage.complete) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                // Запасной фон
+                const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                bgGradient.addColorStop(0, '#100020');
+                bgGradient.addColorStop(1, '#200040');
+                ctx.fillStyle = bgGradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            drawTrees();
+            drawPlatforms();
+            drawSmallLamps();
+            drawFog();
+            
+            // Рисуем врагов
+            zombies.forEach(zombie => {
+                if (zombie.animation) {
+                    ctx.save();
+                    if (zombie.direction < 0) {
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(zombie.animation, -zombie.x - zombie.width, zombie.y, zombie.width, zombie.height);
+                    } else {
+                        ctx.drawImage(zombie.animation, zombie.x, zombie.y, zombie.width, zombie.height);
+                    }
+                    ctx.restore();
+                }
+
+                if (!zombie.isDead && zombie.health > 0) {
+                    ctx.fillStyle = '#d8bfd8';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(`HP: ${zombie.health}`, zombie.x, zombie.y - 5);
+                }
+            });
+
+            runners.forEach(runner => {
+                if (runner.animation) {
+                    ctx.save();
+                    if (runner.direction < 0) {
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(runner.animation, -runner.x - runner.width, runner.y, runner.width, runner.height);
+                    } else {
+                        ctx.drawImage(runner.animation, runner.x, runner.y, runner.width, runner.height);
+                    }
+                    ctx.restore();
+                }
+
+                if (!runner.isDead && runner.health > 0) {
+                    ctx.fillStyle = '#d8bfd8';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(`HP: ${runner.health}`, runner.x, runner.y - 5);
+                }
+            });
+            
+            drawTeleport();
+
+            if (player.animation) {
+                ctx.save();
+                if (!player.facingRight) {
+                    ctx.scale(-1, 1);
+                    if (player.transformed) {
+                        ctx.drawImage(
+                            player.animation, 
+                            -player.x - player.knightWidth, 
+                            player.y - player.knightOffsetY,
+                            player.knightWidth, 
+                            player.knightHeight
+                        );
+                    } else {
+                        ctx.drawImage(
+                            player.animation, 
+                            -player.x - player.width, 
+                            player.y, 
+                            player.width, 
+                            player.height
+                        );
+                    }
+                } else {
+                    if (player.transformed) {
+                        ctx.drawImage(
+                            player.animation, 
+                            player.x, 
+                            player.y - player.knightOffsetY,
+                            player.knightWidth, 
+                            player.knightHeight
+                        );
+                    } else {
+                        ctx.drawImage(
+                            player.animation, 
+                            player.x, 
+                            player.y, 
+                            player.width, 
+                            player.height
+                        );
+                    }
+                }
+                ctx.restore();
+            }
+
+            drawEnemyCounter();
+            
+            if (player.isDead && !player.transformed) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#8a2be2';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('ВЫ ПОГИБЛИ', canvas.width / 2, canvas.height / 2);
+                
+                ctx.fillStyle = '#d8bfd8';
+                ctx.font = '24px Arial';
+                ctx.fillText('Нажмите F5 для перезапуска', canvas.width / 2, canvas.height / 2 + 50);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        // ===== УПРАВЛЕНИЕ ===== //
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            keys[key] = true;
+            
+            if (player.isDead && !player.transformed) return;
+            
+            // Прыжок
+            if ((key === 'w' || key === 'arrowup') && !player.isJumping && player.onGround) {
+                player.isJumping = true;
+                const jumpForce = player.transformed ? player.knightJumpForce : player.jumpForce;
+                player.velocityY = -jumpForce;
+                player.currentAnimation = player.transformed ? 'knightJump' : 'jump';
+                player.animation = player.transformed ? playerAnimations.knightJump : playerAnimations.jump;
+                player.animator = player.transformed ? playerAnimations.animators.knightJump : playerAnimations.animators.jump;
+            }
+            
+            // Атака
+            if (key === 'f' && !player.isAttacking && player.attackCooldown <= 0) {
+                player.isAttacking = true;
+                player.currentAnimation = player.transformed ? 'knightAttack' : 'attack';
+                player.animation = player.transformed ? playerAnimations.knightAttack : playerAnimations.attack;
+                player.animator = player.transformed ? playerAnimations.animators.knightAttack : playerAnimations.animators.attack;
+                player.attackCooldown = player.transformed ? 40 : 30;
+                
+                setTimeout(() => {
+                    player.isAttacking = false;
+                    if (!player.isJumping && !player.isDead) {
+                        player.currentAnimation = player.velocityX !== 0 ? 
+                            (player.transformed ? 'knightWalk' : 'walk') : 
+                            (player.transformed ? 'knightIdle' : 'idle');
+                        player.animation = player.velocityX !== 0 ? 
+                            (player.transformed ? playerAnimations.knightWalk : playerAnimations.walk) : 
+                            (player.transformed ? playerAnimations.knightIdle : playerAnimations.idle);
+                        player.animator = player.velocityX !== 0 ? 
+                            (player.transformed ? playerAnimations.animators.knightWalk : playerAnimations.animators.walk) : 
+                            (player.transformed ? playerAnimations.animators.knightIdle : playerAnimations.animators.idle);
+                    }
+                }, player.transformed ? 600 : 500);
+                
+                setTimeout(() => {
+                    checkPlayerAttack();
+                }, player.transformed ? 300 : 200);
+            }
+
+            // Пропуск диалога
+            if ((key === 'enter' || key === ' ') && gameState === 'dialog') {
+                handleNextDialog();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function checkPlayerAttack() {
+            if (!player.isAttacking || player.isDead) return;
+
+            const attackRange = player.transformed ? player.knightAttackRange : player.attackRange;
+            const damage = player.transformed ? player.knightDamage : player.damage;
+            
+            [...zombies, ...runners].forEach(enemy => {
+                if (enemy.isDead) return;
+                
+                // Упрощенная проверка попадания
+                const playerAttackX = player.facingRight ? 
+                    player.x + (player.transformed ? player.knightWidth : player.width) : 
+                    player.x;
+                    
+                const enemyX = enemy.x + enemy.width/2;
+                const distanceX = Math.abs(playerAttackX - enemyX);
+                
+                const playerY = player.transformed ? 
+                    player.y - player.knightOffsetY + player.knightHeight/2 : 
+                    player.y + player.height/2;
+                    
+                const enemyY = enemy.y + enemy.height/2;
+                const distanceY = Math.abs(playerY - enemyY);
+                
+                const isInRangeX = distanceX < attackRange;
+                const isInRangeY = distanceY < 60; // Допустимая разница по высоте
+                
+                if (isInRangeX && isInRangeY) {
+                    enemy.health -= damage;
+                    
+                    if (enemy.health <= 0) {
+                        enemy.isDead = true;
+                        enemy.deathTimer = 60;
+                        if (enemy.type === 'runner') {
+                            enemy.animation = runnerAnimations.death;
+                            enemy.animator = runnerAnimations.animators.death;
+                        } else {
+                            enemy.animation = zombieAnimations.death;
+                            enemy.animator = zombieAnimations.animators.death;
+                        }
+                    } else {
+                        enemy.isHurt = true;
+                        enemy.hurtTimer = 30;
+                        if (enemy.type === 'runner') {
+                            enemy.animation = runnerAnimations.hurt;
+                            enemy.animator = runnerAnimations.animators.hurt;
+                        } else {
+                            enemy.animation = zombieAnimations.hurt;
+                            enemy.animator = zombieAnimations.animators.hurt;
+                        }
+                        
+                        // Отбрасывание врага
+                        enemy.velocityX = (player.facingRight ? 1 : -1) * 5;
+                        enemy.velocityY = -3;
+                    }
+                }
+            });
+        }
+
+        function checkEnemyAttack(enemy) {
+            if (player.isDead || player.invincible || player.transformed) return;
+            
+            const playerX = player.x + (player.transformed ? player.knightWidth/2 : player.width/2);
+            const enemyX = enemy.x + enemy.width/2;
+            const distanceX = Math.abs(playerX - enemyX);
+            
+            const playerY = player.transformed ? 
+                player.y - player.knightOffsetY + player.knightHeight/2 : 
+                player.y + player.height/2;
+                
+            const enemyY = enemy.y + enemy.height/2;
+            const distanceY = Math.abs(playerY - enemyY);
+            
+            const isInRangeX = distanceX < enemy.attackRange;
+            const isInRangeY = distanceY < enemy.attackYRange;
+            
+            if (isInRangeX && isInRangeY && enemy.attackCooldown <= 0 && !enemy.isHurt && !enemy.isDead) {
+                enemy.isAttacking = true;
+                if (enemy.type === 'runner') {
+                    enemy.animation = runnerAnimations.attack;
+                    enemy.animator = runnerAnimations.animators.attack;
+                } else {
+                    enemy.animation = zombieAnimations.attack;
+                    enemy.animator = zombieAnimations.animators.attack;
+                }
+                enemy.attackCooldown = enemy.type === 'runner' ? 60 : 90;
+                
+                setTimeout(() => {
+                    if (isInRangeX && isInRangeY && !player.invincible && !player.isDead && !player.transformed) {
+                        player.health -= enemy.damage;
+                        updateHP(-enemy.damage); // Обновляем сохраненное HP
+                        
+                        if (player.health <= 0) {
+                            playerDie();
+                        } else {
+                            playerHurt(enemy);
+                        }
+                    }
+                }, enemy.type === 'runner' ? 200 : 300);
+                
+                setTimeout(() => {
+                    enemy.isAttacking = false;
+                    if (enemy.type === 'runner' && !enemy.isHurt && !enemy.isDead) {
+                        enemy.animation = runnerAnimations.walk;
+                        enemy.animator = runnerAnimations.animators.walk;
+                    } else if (!enemy.isHurt && !enemy.isDead) {
+                        enemy.animation = zombieAnimations.walk;
+                        enemy.animator = zombieAnimations.animators.walk;
+                    }
+                }, enemy.type === 'runner' ? 400 : 500);
+            }
+        }
+
+        function playerHurt(enemy) {
+            player.invincible = true;
+            player.invincibleTimer = 60;
+            player.currentAnimation = player.transformed ? 'knightIdle' : 'hurt';
+            player.animation = player.transformed ? playerAnimations.knightIdle : playerAnimations.hurt;
+            player.animator = player.transformed ? playerAnimations.animators.knightIdle : playerAnimations.animators.hurt;
+            
+            player.velocityX = (player.x < enemy.x ? -1 : 1) * (player.transformed ? 6 : 8);
+            player.velocityY = player.transformed ? -4 : -6;
+        }
+
+        function playerDie() {
+            player.isDead = true;
+            player.currentAnimation = player.transformed ? 'knightIdle' : 'death';
+            player.animation = player.transformed ? playerAnimations.knightIdle : playerAnimations.death;
+            player.animator = player.transformed ? playerAnimations.animators.knightIdle : playerAnimations.animators.death;
+            
+            // Проверяем, использован ли уже последний шанс
+            const lastChanceUsed = localStorage.getItem('lastChanceUsed') === 'true';
+            
+            if (!lastChanceUsed) {
+                setTimeout(() => {
+                    showLastChance();
+                }, 2000);
+            }
+        }
+
+        function showLastChance() {
+            lastChanceBtn.style.display = 'block';
+        }
+
+        lastChanceBtn.addEventListener('click', () => {
+            lastChanceBtn.style.display = 'none';
+            localStorage.setItem('lastChanceUsed', 'true');
+            transformToKnight();
+        });
+
+        function transformToKnight() {
+            player.isDead = false;
+            player.transformed = true;
+            player.transformationTimer = 240;
+            player.health = Math.floor(player.maxHealth / 2);
+            updateHP(Math.floor(player.maxHealth / 2) - player.health);
+            player.invincible = true;
+            
+            if (player.currentPlatform) {
+                player.y = player.currentPlatform.y - (player.knightHeight - player.knightOffsetY);
+            } else if (player.onGround) {
+                player.y = groundLevel - (player.knightHeight - player.knightOffsetY);
+            }
+            
+            // Эффект трансформации
+            playerGlow.style.display = 'block';
+            playerGlow.style.left = `${player.x - 150}px`;
+            playerGlow.style.top = `${player.y - 150}px`;
+            
+            const glowAnimation = playerGlow.animate(
+                [
+                    { transform: 'scale(1)', opacity: 0.7 },
+                    { transform: 'scale(1.2)', opacity: 0.3 },
+                    { transform: 'scale(1)', opacity: 0.7 }
+                ],
+                {
+                    duration: 1000,
+                    iterations: Infinity
+                }
+            );
+            
+            setTimeout(() => {
+                glowAnimation.cancel();
+                playerGlow.style.display = 'none';
+            }, 1000);
+            
+            // Эффект взрыва (без урона врагам)
+            explosion.style.display = 'block';
+            explosion.style.left = `${player.x + (player.transformed ? player.knightWidth/2 : player.width/2)}px`;
+            explosion.style.top = `${player.y + (player.transformed ? player.knightHeight/2 : player.height/2)}px`;
+            explosion.style.opacity = '0.8';
+            
+            explosion.animate(
+                [
+                    { transform: 'scale(0.5)', opacity: 0 },
+                    { transform: 'scale(1)', opacity: 0.8 },
+                    { transform: 'scale(1.5)', opacity: 0 }
+                ],
+                {
+                    duration: 1000,
+                    easing: 'ease-out'
+                }
+            ).onfinish = () => {
+                explosion.style.display = 'none';
+            };
+            
+            // Устанавливаем анимацию рыцаря
+            player.currentAnimation = 'knightIdle';
+            player.animation = playerAnimations.knightIdle;
+            player.animator = playerAnimations.animators.knightIdle;
+            
+            // Обновляем отображение здоровья
+            updateHealthDisplay();
+        }
+
+        function endTransformation() {
+            player.transformed = false;
+            player.invincible = false;
+            
+            // Фиксим позицию после трансформации
+            if (player.currentPlatform) {
+                player.y = player.currentPlatform.y - player.height;
+            } else if (player.onGround) {
+                player.y = groundLevel - player.height;
+            }
+            
+            // Эффект взрыва при окончании трансформации
+            explosion.style.display = 'block';
+            explosion.style.left = `${player.x + player.width/2}px`;
+            explosion.style.top = `${player.y + player.height/2}px`;
+            explosion.style.opacity = '0.8';
+            
+            explosion.animate(
+                [
+                    { transform: 'scale(0.5)', opacity: 0 },
+                    { transform: 'scale(1)', opacity: 0.8 },
+                    { transform: 'scale(1.5)', opacity: 0 }
+                ],
+                {
+                    duration: 1000,
+                    easing: 'ease-out'
+                }
+            ).onfinish = () => {
+                explosion.style.display = 'none';
+            };
+            
+            // Возвращаем обычную анимацию
+            player.currentAnimation = 'idle';
+            player.animation = playerAnimations.idle;
+            player.animator = playerAnimations.animators.idle;
+            
+            // Обновляем отображение здоровья
+            updateHealthDisplay();
+            
+            // Если здоровье упало до нуля после трансформации
+            if (player.health <= 0) {
+                player.isDead = true;
+                player.currentAnimation = 'death';
+                player.animation = playerAnimations.death;
+                player.animator = playerAnimations.animators.death;
+            }
+        }
+
+        // ===== АНИМАЦИЯ НАЗВАНИЯ ЛОКАЦИИ ===== //
+        function showLocationTitle() {
+            locationTitle.style.opacity = '1';
+            locationSubtitle.style.opacity = '1';
+            
+            setTimeout(() => {
+                locationTitle.style.opacity = '0';
+                locationSubtitle.style.opacity = '0';
+            }, 4000);
+        }
+
+        // ===== ГЛАВНЫЙ ЦИКЛ ===== //
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Инициализация игры
+        function initGame() {
+            // Генерируем частицы для портала при запуске
+            generatePortalParticles();
+            
+            // Устанавливаем начальное здоровье игрока
+            player.health = getCurrentHP();
+            updateHealthDisplay();
+            
+            // Показываем название локации
+            showLocationTitle();
+            
+            // Запускаем игровой цикл
+            gameLoop();
+        }
+
+        // Запускаем игру после загрузки страницы
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
